@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@hanser/z-axis | Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* CORE THEME */
+        :root {
+            --bg-dark: #050505;
+            --bg-panel: #0f0f0f;
+            --accent: #00ff9d;
+            --accent-dim: rgba(0, 255, 157, 0.1);
+            --text-muted: #666;
+            --border: #222;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        /* CUSTOM SLIDERS */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px var(--accent);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+        }
+
+        /* GRID BACKGROUND */
+        .grid-bg {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+        }
+
+        .stage {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* CARD TEXTURES */
+        .texture-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .texture-metal {
+            background: linear-gradient(135deg, #1a1a1a, #000);
+            border: 1px solid #333;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .texture-neon {
+            background: black;
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 30px var(--accent-dim);
+        }
+    </style>
+</head>
+<body class="flex h-screen w-screen">
+
+    <!-- LEFT PANEL: SETTINGS -->
+    <aside class="w-96 bg-[var(--bg-panel)] border-r border-[var(--border)] flex flex-col z-20 shadow-2xl">
+        
+        <!-- Header -->
+        <div class="p-6 border-b border-[var(--border)]">
+            <h1 class="text-xl font-bold tracking-tighter flex items-center gap-2">
+                <span class="w-3 h-3 bg-[var(--accent)] rounded-full shadow-[0_0_10px_var(--accent)]"></span>
+                @hanser/z-axis
+            </h1>
+            <p class="text-xs text-[var(--text-muted)] mt-2">Physics UI Library • Configurator</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-8 hide-scrollbar">
+            
+            <!-- PRESETS -->
+            <div class="space-y-3">
+                <label class="text-xs font-bold text-[var(--text-muted)] tracking-widest uppercase">Preset</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btn-glass" onclick="setPreset('glass')" class="preset-btn p-2 text-xs border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors text-center hover:text-[var(--accent)] text-[var(--accent)] border-[var(--accent)]">Glass</button>
+                    <button id="btn-metal" onclick="setPreset('metal')" class="preset-btn p-2 text-xs border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors text-center hover:text-[var(--accent)]">Credit</button>
+                    <button id="btn-neon" onclick="setPreset('neon')" class="preset-btn p-2 text-xs border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors text-center hover:text-[var(--accent)]">Cyber</button>
+                </div>
+            </div>
+
+            <hr class="border-[var(--border)]">
+
+            <!-- PHYSICS CONTROLS -->
+            <div class="space-y-6">
+                <!-- Force Slider -->
+                <div class="flex justify-between items-center">
+                     <label class="text-xs font-bold text-[var(--text-muted)] uppercase">Tilt Force</label>
+                     <span id="val-force" class="text-xs mono text-[var(--accent)]">30deg</span>
+                </div>
+                <input type="range" id="inp-force" min="0" max="80" value="30" step="1">
+
+                <!-- Mode Toggle -->
+                <div class="flex justify-between items-center pt-2">
+                    <label class="text-xs font-bold text-[var(--text-muted)] uppercase">Physics Mode</label>
+                </div>
+                <div class="flex gap-2 bg-black p-1 rounded">
+                    <button id="mode-heavy" class="flex-1 text-xs py-2 rounded bg-[#222] text-white transition-all" onclick="setMode('heavy')">Heavy (Lerp)</button>
+                    <button id="mode-instant" class="flex-1 text-xs py-2 rounded text-[#666] hover:text-white transition-all" onclick="setMode('instant')">Instant</button>
+                </div>
+            </div>
+
+            <hr class="border-[var(--border)]">
+
+            <!-- TOGGLES (FIXED: Using <label> to prevent double-click bug) -->
+            <div class="space-y-4 pt-2">
+                <label for="inp-glare" class="flex items-center justify-between cursor-pointer group">
+                    <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Holographic Glare</span>
+                    <input type="checkbox" id="inp-glare" checked class="accent-[var(--accent)] w-4 h-4 cursor-pointer">
+                </label>
+                
+                <label for="inp-reverse" class="flex items-center justify-between cursor-pointer group">
+                    <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Reverse Axis</span>
+                    <input type="checkbox" id="inp-reverse" class="accent-[var(--accent)] w-4 h-4 cursor-pointer">
+                </label>
+            </div>
+        </div>
+
+        <!-- CODE EXPORT -->
+        <div class="p-6 bg-black border-t border-[var(--border)]">
+            <div class="flex justify-between items-center mb-2">
+                <label class="text-xs font-bold text-[var(--text-muted)] uppercase">Installation & Usage</label>
+                <button onclick="copyCode()" class="text-[var(--accent)] text-xs hover:underline cursor-pointer">Copy</button>
+            </div>
+            <div class="relative group">
+                <pre class="mono text-[10px] text-gray-400 bg-[#111] p-3 rounded border border-[var(--border)] overflow-x-auto whitespace-pre"><code id="code-output">...</code></pre>
+                <div id="copy-toast" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[var(--accent)] text-black text-xs font-bold px-3 py-1 rounded opacity-0 transition-opacity pointer-events-none">COPIED!</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- RIGHT PANEL: STAGE -->
+    <main class="flex-1 relative flex items-center justify-center overflow-hidden bg-[#080808]">
+        <div class="absolute inset-0 grid-bg opacity-20 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] pointer-events-none"></div>
+
+        <!-- STAGE -->
+        <div class="stage w-full h-full flex items-center justify-center">
+            <div id="demo-card" 
+                 class="w-[400px] h-[260px] rounded-2xl relative flex flex-col justify-between p-8 shadow-2xl transition-all duration-500"
+                 data-z 
+                 data-z-force="30"
+                 data-z-glare>
+                <div id="card-content" class="h-full flex flex-col justify-between pointer-events-none">
+                    <!-- Content injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-8 text-center pointer-events-none opacity-50">
+            <p class="text-xs mono tracking-widest">HOVER TO INTERACT</p>
+        </div>
+    </main>
+
+    <!-- LIBRARY LOGIC (Embedded) -->
+    <script>
+        // --- 1. THE ENGINE ---
+        class ZManager {
+            constructor() {
+                this.elements = new Set();
+                this.mouse = { x: 0, y: 0 };
+                this.isRunning = false;
+                this.loop = this.loop.bind(this);
+                this.handleMove = this.handleMove.bind(this);
+                if(typeof window !== 'undefined') window.addEventListener('mousemove', this.handleMove);
+            }
+            handleMove(e) {
+                this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                this.mouse.y = (e.clientY / window.innerHeight) * 2 - 1;
+            }
+            register(el) { this.elements.add(el); this.start(); }
+            unregister(el) { this.elements.delete(el); if(this.elements.size===0) this.stop(); }
+            start() { if(!this.isRunning) { this.isRunning=true; requestAnimationFrame(this.loop); }}
+            stop() { this.isRunning=false; }
+            loop() {
+                if(!this.isRunning) return;
+                this.elements.forEach(el => el.update(this.mouse));
+                requestAnimationFrame(this.loop);
+            }
+        }
+        const manager = new ZManager();
+
+        // --- 2. THE ELEMENT ---
+        class ZElement {
+            constructor(el, options = {}) {
+                this.el = el;
+                this.current = { x: 0, y: 0 };
+                
+                // 1. Create Glare Node FIRST
+                this.glareNode = document.createElement('div');
+                Object.assign(this.glareNode.style, {
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    pointerEvents: 'none', mixBlendMode: 'overlay', zIndex: 2,
+                    borderRadius: 'inherit', transition: 'opacity 0.2s'
+                });
+                this.el.appendChild(this.glareNode);
+                this.el.style.overflow = 'hidden';
+                this.el.style.transformStyle = 'preserve-3d';
+
+                // 2. Apply Options
+                this.updateOptions(options);
+
+                manager.register(this);
+            }
+
+            updateOptions(options) {
+                this.force = parseInt(options.force);
+                if (isNaN(this.force)) this.force = 20;
+                
+                this.mode = options.mode || 'heavy';
+                this.reverse = options.reverse || false;
+                this.hasGlare = options.glare;
+                
+                if (this.glareNode) {
+                    this.glareNode.style.opacity = this.hasGlare ? '1' : '0';
+                }
+            }
+
+            update(globalMouse) {
+                const direction = this.reverse ? 1 : -1;
+                
+                // Calculate target based on mouse AND current force
+                const targetX = globalMouse.y * this.force * direction;
+                const targetY = globalMouse.x * this.force * (direction * -1); 
+
+                if (this.mode === 'heavy') {
+                    this.current.x += (targetX - this.current.x) * 0.08;
+                    this.current.y += (targetY - this.current.y) * 0.08;
+                } else {
+                    this.current.x = targetX;
+                    this.current.y = targetY;
+                }
+
+                this.el.style.transform = 
+                    `perspective(1000px) rotateX(${this.current.x}deg) rotateY(${this.current.y}deg)`;
+
+                if (this.hasGlare) {
+                    const mx = (globalMouse.x + 1) * 50;
+                    const my = (globalMouse.y + 1) * 50;
+                    this.glareNode.style.background = 
+                        `radial-gradient(circle at ${mx}% ${my}%, rgba(255,255,255,0.4) 0%, transparent 60%)`;
+                }
+            }
+        }
+
+        // --- 3. STUDIO CONTROLS ---
+        const state = { force: 30, mode: 'heavy', glare: true, reverse: false, preset: 'glass' };
+        const card = document.getElementById('demo-card');
+        const cardContent = document.getElementById('card-content');
+        
+        // Initialize Library
+        let zInstance = new ZElement(card, state);
+
+        function updateEngine() {
+            zInstance.updateOptions(state);
+            updateCodeDisplay();
+        }
+
+        function updateCodeDisplay() {
+            const codeBlock = document.getElementById('code-output');
+            let html = `<!-- Install: npm i z-axis-hanser -->\n`;
+            html += `<div class="card"\n`;
+            html += `     data-z\n`;
+            html += `     data-z-force="${state.force}"\n`;
+            html += `     data-z-mode="${state.mode}"\n`;
+            if(state.glare) html += `     data-z-glare\n`;
+            if(state.reverse) html += `     data-z-reverse\n`;
+            html += `>\n  ...content...\n</div>`;
+            codeBlock.innerText = html;
+        }
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('inp-force').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            state.force = val;
+            document.getElementById('val-force').innerText = val + 'deg';
+            updateEngine();
+        });
+
+        document.getElementById('inp-glare').addEventListener('change', (e) => {
+            state.glare = e.target.checked;
+            updateEngine();
+        });
+
+        document.getElementById('inp-reverse').addEventListener('change', (e) => {
+            state.reverse = e.target.checked;
+            updateEngine();
+        });
+
+        window.setMode = (mode) => {
+            state.mode = mode;
+            const btnHeavy = document.getElementById('mode-heavy');
+            const btnInstant = document.getElementById('mode-instant');
+            
+            if (mode === 'heavy') {
+                btnHeavy.className = "flex-1 text-xs py-2 rounded bg-[#222] text-white transition-all";
+                btnInstant.className = "flex-1 text-xs py-2 rounded text-[#666] hover:text-white transition-all";
+            } else {
+                btnHeavy.className = "flex-1 text-xs py-2 rounded text-[#666] hover:text-white transition-all";
+                btnInstant.className = "flex-1 text-xs py-2 rounded bg-[#222] text-white transition-all";
+            }
+            updateEngine();
+        };
+
+        window.setPreset = (preset) => {
+            state.preset = preset;
+            
+            // Update Buttons UI
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.className = "preset-btn p-2 text-xs border border-[var(--border)] rounded hover:border-[var(--accent)] transition-colors text-center hover:text-[var(--accent)] text-[#666]";
+            });
+            
+            const activeBtn = document.getElementById(`btn-${preset}`);
+            if (activeBtn) {
+                activeBtn.className = "preset-btn p-2 text-xs border rounded transition-colors text-center text-[var(--accent)] border-[var(--accent)]";
+            }
+
+            // Reset Card
+            card.className = "w-[400px] h-[260px] rounded-2xl relative flex flex-col justify-between p-8 shadow-2xl transition-all duration-500";
+            
+            if (preset === 'glass') {
+                card.classList.add('texture-glass');
+                cardContent.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md" data-z-depth="30px">
+                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <span class="text-xs font-mono text-white/50" data-z-depth="10px">@hanser/z-axis</span>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold tracking-tight text-white mb-1" data-z-depth="40px">Glass UI</h3>
+                        <p class="text-sm text-white/60" data-z-depth="20px">Depth Simulation</p>
+                    </div>
+                `;
+            } 
+            else if (preset === 'metal') {
+                card.classList.add('texture-metal');
+                cardContent.innerHTML = `
+                     <div class="flex justify-between items-start">
+                        <div class="flex gap-2">
+                             <div class="w-8 h-8 rounded-full bg-yellow-500/80" data-z-depth="25px"></div>
+                             <div class="w-8 h-8 rounded-full bg-red-500/80 -ml-4 mix-blend-screen" data-z-depth="25px"></div>
+                        </div>
+                        <span class="text-xs font-bold tracking-widest text-white/80 italic" data-z-depth="5px">VIP</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-mono text-white mb-4 tracking-widest" style="text-shadow: 0 2px 4px black" data-z-depth="35px">0000 0000 0000 0000</h3>
+                        <p class="text-xs text-white/40" data-z-depth="15px">HANSER / Z-AXIS</p>
+                    </div>
+                `;
+            }
+            else if (preset === 'neon') {
+                card.classList.add('texture-neon');
+                cardContent.innerHTML = `
+                     <div class="absolute inset-0 border-2 border-[var(--accent)] opacity-20 m-2 rounded-xl" data-z-depth="-10px"></div>
+                     <div class="flex justify-center items-center h-full flex-col">
+                        <div class="text-6xl mb-2 transform grayscale hover:grayscale-0 transition-all" data-z-depth="60px">👾</div>
+                        <h3 class="text-3xl font-black text-white italic tracking-tighter" style="-webkit-text-stroke: 1px var(--accent); color: transparent;" data-z-depth="40px">LEVEL UP</h3>
+                     </div>
+                `;
+            }
+            
+            // Re-apply depth logic to new content
+            const popOuts = card.querySelectorAll('[data-z-depth]');
+            popOuts.forEach(child => {
+                const depth = child.dataset.zDepth || '20px';
+                child.style.transform = `translateZ(${depth})`;
+            });
+        };
+
+        window.copyCode = () => {
+            const code = document.getElementById('code-output').innerText;
+            navigator.clipboard.writeText(code);
+            const toast = document.getElementById('copy-toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 2000);
+        };
+
+        // Init
+        setPreset('glass');
+        updateCodeDisplay();
+
+    </script>
+</body>
+</html>
