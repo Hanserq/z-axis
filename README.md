@@ -3,7 +3,7 @@
 [![npm version](https://badge.fury.io/js/z-axis-hanser.svg)](https://badge.fury.io/js/z-axis-hanser)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A lightweight, high-performance 3D physics engine for the web. It turns flat HTML elements into interactive, holographic objects that respond to mouse movement and mobile gyroscope tilt.
+A lightweight, high-performance 3D physics engine for the web. It turns flat HTML elements into interactive, hello holographic objects that respond to mouse movement and mobile gyroscope tilt.
 
 [**✨ Launch Live Studio Demo**](https://hanserq.github.io/z-axis)
 
